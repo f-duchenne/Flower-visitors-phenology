@@ -11,6 +11,8 @@ tab=b$data
 
 #set the smoothing parameter (higher is the sp, lower is your ability to detect close modes):
 sp=1.65
+#set the distance parameter (higher is the dist_p, lower is your ability to detect close modes):
+dist_p=40
 
 #define the new column
 tab$gen=NA
@@ -52,7 +54,7 @@ maxi$elev=0
 for(i1 in 1:(nrow(maxi)-1)){
 maxi[i1,"dist"]=abs(maxi[i1,"x"]-maxi[i1+1,"x"])
 maxi[i1,"elev"]=1+(min(maxi[c(i1,i1+1),"y"])-mini[[i1,"y"]])/max(maxi[,"y"])
-if(maxi[i1,"dist"]<(40/maxi[i1,"elev"])){
+if(maxi[i1,"dist"]<(dist_p/maxi[i1,"elev"])){
 maxi=maxi[-(i1-1+which.min(maxi[c(i1,i1+1),"y"])),]
 mini=mini[-i1,]}
 }
