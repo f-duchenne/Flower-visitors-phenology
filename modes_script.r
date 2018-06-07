@@ -97,3 +97,6 @@ pl1=ggplot(data=tab,aes(x=julian.day,fill=as.factor(gen)))+geom_histogram()+them
 ggtitle(unique(tab$name))+xlab("Observation day (julian day)")
 pl2=France+geom_point(data=tab,aes(y=decimalLatitude,x=decimalLongitude,col=as.factor(gen)),size=0.4,alpha=0.4)+labs(col="Mode")
 grid.arrange(pl1,pl2,ncol=2)
+
+#on this example you can see adult records (in green, in the middle) and eggs/larvae records in red and blue
+#so now we can work only on the adult phenology be removing eggs/larve records
