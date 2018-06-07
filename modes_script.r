@@ -9,7 +9,6 @@ b=occ_search(taxonKey=name_backbone(name='Araschnia levana',rank='species', king
 decimalLongitude='-15,36',limit=200000)
 tab=b$data
 
-#set the smoothing parameter (higher is the sp, lower is your ability to detect close modes):
 sp=1.65
 #set the distance parameter (higher is the dist_p, lower is your ability to detect close modes):
 dist_p=40
