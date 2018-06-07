@@ -3,7 +3,6 @@ library(lubridate)
 library(pastecs)
 library(fitdistrplus)
 
-
 #DOWLOAD EUROPEAN RECORDS FROM GBIF FOR EXAMPLE DATASET:
 b=occ_search(taxonKey=name_backbone(name='Araschnia levana',rank='species', kingdom='animals')$usageKey,decimalLatitude='32,72',
 decimalLongitude='-15,36',limit=200000)
