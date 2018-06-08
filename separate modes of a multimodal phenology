@@ -99,3 +99,4 @@ grid.arrange(pl1,pl2,ncol=2)
 
 #on this example you can see adult records (in green, in the middle) and eggs/larvae records in red and blue
 #so now we can work only on the adult phenology be removing eggs/larve records
+
