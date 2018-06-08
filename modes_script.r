@@ -23,7 +23,7 @@ tab=subset(tab,julian.day>1 & julian.day<365 & !is.na(decimalLatitude))
 
 #Linear model to take in account spatial variation of the phenology+phenological shifts with time
 model=lm(julian.day~decimalLatitude*decimalLongitude+as.numeric(year),data=tab) #you can add the altitude
-model=step(model,scope=list(lower=~decimalLatitude*decimalLatitude,upper=model))
+model=step(model,scope=list(lower=~decimalLatitude*decimalLongitude,upper=model))
 
 #stock residuals and fitted
 tab$resi=residuals(model)
