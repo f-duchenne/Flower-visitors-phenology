@@ -60,8 +60,9 @@ maxi[i1,"elev"]=1+(min(maxi[c(i1,i1+1),"y"])-mini[[i1,"y"]])/max(maxi[,"y"])
 if(maxi[i1,"dist"]<(dist_p/maxi[i1,"elev"])){
 maxi=maxi[-(i1-1+which.min(maxi[c(i1,i1+1),"y"])),]
 mini=mini[-i1,]}
-}
+}}
 
+if(nrow(maxi)>1){
 #define discrete limits of each mode to fit gaussians
 borne1=c(min(tab$resi),mini$x)
 borne2=c(mini$x,max(tab$resi))
