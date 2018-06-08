@@ -45,7 +45,11 @@ mini.func=function(j){
 bide=subset(density.tab,pits==TRUE & x>maxi[j,"x"] & x<maxi[(j+1),"x"])
 return(bide[which.min(bide$y),c("x","y")])}
 minis=unlist(sapply(1:(nrow(maxi)-1),mini.func))
-mini=data.frame(x=minis[seq(1,length(minis),2)],y=minis[seq(2,length(minis),2)])
+if(length(minis)>0){mini=data.frame(x=minis[seq(1,length(minis),2)],y=minis[seq(2,length(minis),2)])}else{mini=c()}
+
+
+# if distribution is multimodal:
+if(length(mini$x)>0){
 
 #calculate distance between and elevation of two successive maximums and remove too close maximums
 maxi$dist=0
@@ -58,8 +62,7 @@ maxi=maxi[-(i1-1+which.min(maxi[c(i1,i1+1),"y"])),]
 mini=mini[-i1,]}
 }
 
-# if distribution is multimodal:
-if(length(mini$x)>0){
+#define discrete limits of each mode to fit gaussians
 borne1=c(min(tab$resi),mini$x)
 borne2=c(mini$x,max(tab$resi))
 #Fit a gaussian on each mode
@@ -68,7 +71,7 @@ temp=subset(tab,resi>borne1[j] & resi<=borne2[j])
 fit=fitdist(temp$resi,"norm",method="mle",start=list(mean = mean(temp$resi), sd=sd(temp$resi)))
 #define the density of each residual for this mode
 tab[,paste("V",j,sep="")]=dnorm(tab$resi,fit$estimate[1],fit$estimate[2])*(nrow(temp)/nrow(tab))
-}s
+}
 
 #calculate the ratio of the density of each mode on the total density (all modes included):
 tab[,paste("V",1:length(borne1),sep="")]=tab[,paste("V",1:length(borne1),sep="")]/
@@ -82,6 +85,7 @@ vec=c(tab[x,"random"]-cumul[,x])
 which(vec==max(vec[which(vec<0)]))
 }
 tab$gen=sapply(1:nrow(tab),gen.func)
+}
 
 #plot the result
 library(ggmap)
