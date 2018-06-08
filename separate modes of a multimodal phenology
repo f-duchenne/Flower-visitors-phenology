@@ -93,7 +93,7 @@ library(ggmap)
 library(ggplot2)
 library(gridExtra)
 
-France_map=get_googlemap(center="Europe", maptype = "satellite",zoom=3,scale=2) #this step can failed, repeat this row again until it works 
+France_map=get_googlemap(center="Europe", maptype = "satellite",zoom=3,scale=2) #this step can faile, repeat this row again until it works 
 France <- ggmap(France_map)+
  scale_y_continuous(limits = c(32,72), expand = c(0, 0))+
        scale_x_continuous(limits = c(-15,36), expand = c(0, 0))
