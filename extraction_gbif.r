@@ -51,9 +51,9 @@ tab=subset(tab,lifeStage!="LARVA" & lifeStage!="EMRYO")}
 if(!("decimalLatitude" %in% names(tab))){tab$decimalLatitude=NA
 tab$decimalLongitude=NA}
 tab$decimalLatitude[which(tab$decimalLatitude==0)]=NA
-tab=subset(tab,decimalLatitude>32 & decimalLatitude<72 | is.na(decimalLatitude))
+tab=subset(tab,decimalLatitude>34 & decimalLatitude<72 | is.na(decimalLatitude))
 tab$decimalLongitude[which(is.na(tab$decimalLatitude))]=NA
-tab=subset(tab,decimalLongitude>-15 & decimalLongitude<46 | is.na(decimalLongitude))
+tab=subset(tab,decimalLongitude>-15 & decimalLongitude<32 | is.na(decimalLongitude))
 #if the table is not empty yet after this selection:
 if(dim(tab)[1]>0){
 #creates columns if they do not exist (download tables are moving (not always including same columns)
@@ -93,9 +93,9 @@ tab=subset(tab,lifeStage!="LARVA" & lifeStage!="EMRYO")}
 if(!("decimalLatitude" %in% names(tab))){tab$decimalLatitude=NA
 tab$decimalLongitude=NA}
 tab$decimalLatitude[which(tab$decimalLatitude==0)]=NA
-tab=subset(tab,decimalLatitude>32 & decimalLatitude<72 | is.na(decimalLatitude))
+tab=subset(tab,decimalLatitude>34 & decimalLatitude<72 | is.na(decimalLatitude))
 tab$decimalLongitude[which(is.na(tab$decimalLatitude))]=NA
-tab=subset(tab,decimalLongitude>-15 & decimalLongitude<46 | is.na(decimalLongitude))
+tab=subset(tab,decimalLongitude>-15 & decimalLongitude<32 | is.na(decimalLongitude))
 #if the table is not empty yet after this selection:
 if(dim(tab)[1]>0){
 #creates columns if they do not exist (download tables are moving (not always including same columns)
