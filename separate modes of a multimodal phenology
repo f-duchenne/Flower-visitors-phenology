@@ -50,17 +50,21 @@ if(length(minis)>0){mini=data.frame(x=minis[seq(1,length(minis),2)],y=minis[seq(
 
 # if distribution is multimodal:
 if(length(mini$x)>0){
-
 #calculate distance between and elevation of two successive maximums and remove too close maximums
 maxi$dist=0
 maxi$elev=0
+vec=c()
+vec2=c()
 for(i1 in 1:(nrow(maxi)-1)){
 maxi[i1,"dist"]=abs(maxi[i1,"x"]-maxi[i1+1,"x"])
-maxi[i1,"elev"]=1+(min(maxi[c(i1,i1+1),"y"])-mini[[i1,"y"]])/max(maxi[,"y"])
-if(maxi[i1,"dist"]<(dist_p/maxi[i1,"elev"])){
-maxi=maxi[-(i1-1+which.min(maxi[c(i1,i1+1),"y"])),]
-mini=mini[-i1,]}
-}}
+maxi[i1,"elev"]=(1+(min(maxi[c(i1,i1+1),"y"])-mini[[i1,"y"]])/max(maxi[,"y"]))^8
+if(maxi[i1,"dist"]<(40/maxi[i1,"elev"])){
+vec=c(vec,i1-1+which.min(maxi[c(i1,i1+1),"y"]))
+vec2=c(vec2,i1)}
+}
+if(length(vec)>0){
+maxi=maxi[-vec,]
+mini=mini[-vec2,]}}
 
 if(nrow(maxi)>1){
 #define discrete limits of each mode to fit gaussians
