@@ -11,11 +11,11 @@ liste$confi=NA
 liste$rang=NA
 for(i in 1:nrow(liste)){
 obj=name_backbone(name=as.character(liste[i,"species"]),rank='species', kingdom='animals')
-if(length(obj$usageKey)>0){
-liste$ID[i]=obj$usageKey
+if(length(obj$speciesKey)>0){
+liste$ID[i]=obj$speciesKey
 liste$family[i]=obj$family
 liste$order[i]=obj$order
-liste$canon[i]=obj$canonicalName
+liste$canon[i]=obj$species
 liste$rang[i]=obj$rank
 liste$confi[i]=obj$confidence
 }
@@ -25,17 +25,15 @@ liste
 Pays_nondesire=c("Thailand","Mexico","Panama","Svalbard and Jan Mayen","Malaysia","Korea, Democratic People's Republic of","Taiwan, Province of China","Pakistan","Indonesia","Swaziland",
 "American Samoa","Syrian Arab Republic","Tajikistan","Uzbekistan","Kyrgyzstan","United Arab Emirates","Grenada","Bolivia, Plurinational State of","Uganda",
 "Tanzania, United Republic of","Malawi","Puerto Rico","Taiwan","Kenya","Trinidad and Tobago","Afghanistan","Armenia","Iran, Islamic Republic of","Panama","Botswana",
-"New Zealand","Japan","Australia","United States","Canada","Brazil","Argentina","Madagascar","Suriname","China","Nigeria","Albania","Turkey","Russian Federation","Colombia","Korea, Republic of","Mongolia","Morocco","Israel","Venezuela, Bolivarian Republic of",
+"Albania","Russian Federation","Colombia","Korea, Republic of","Mongolia","Morocco","Israel","Venezuela, Bolivarian Republic of",
 "Libya","Algeria","Benin","Jordan","Greenland","French Guiana","Ghana","Chile","Guyana","Togo","Lebanon","Tunisia","Iraq","India","Kyrgyzstan","Taiwan",
-"New Zealand","Japan","Australia","United States","Canada","Brazil","Argentina","Madagascar","Suriname","China","Nigeria","Turkey","Russian Federation","Colombia",
-"Korea, Republic of","Mongolia","Morocco","Israel","Venezuela, Bolivarian Republic of","Libya","Algeria","Benin","Jordan","Greenland","French Guiana","Ghana","Chile","Guyana",
-"Togo","Lebanon","Tunisia","Iraq")
+"New Zealand","Japan","Australia","United States","Canada","Brazil","Argentina","Madagascar","Suriname","China","Nigeria","Turkey")
 
 #DATA EXTRACTION:
 
 for(i in 1:nrow(liste)){
 
-#CHECK that the number of records is under 200 000, if it is not hte case, go further:
+#CHECK that the number of records is under 200 000, if it is not the case, go further:
 if(occ_count(taxonKey=liste[i,"ID"])<200000){
 #Download records
 b=occ_search(taxonKey=liste[i,"ID"],limit=200000)
