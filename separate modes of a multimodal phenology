@@ -1,141 +1,157 @@
 library(rgbif)
 library(lubridate)
 library(pastecs)
-library(fitdistrplus)
-library(plyr)
-library(utils)
-library(doSNOW)
-library(foreach)
 library(mclust)
+library(lme4)
 
 #DOWLOAD EUROPEAN RECORDS FROM GBIF FOR A SPECIES (it takes some time):
-b=occ_search(taxonKey=name_backbone(name='Thecla betulae',rank='species', kingdom='animals')$usageKey,decimalLatitude='32,72',
+b=occ_search(taxonKey=name_backbone(name='Rhingia cmapestris',rank='species', kingdom='animals')$usageKey,decimalLatitude='32,72',
 decimalLongitude='-15,36',limit=200000)
 tab=as.data.frame(b$data)
 
 #add the julian day column:
 tab$julian.day=yday(as.Date(paste(tab$year,tab$month,tab$day,sep="-")))
-#remove non precise dated records accumulated on 1st and last day of the year:
+#remove non precise dated records accumulated on 1st and last day of the year and non located records:
 tab=subset(tab,julian.day>1 & julian.day<365 & !is.na(decimalLatitude))
 
 #define the new column
 tab$gen=NA
 
-#FUNCTION:
-func<-function(tab,julian.day,decimalLatitude,decimalLongitude,year,sp,prec_lat,prec_long,species,seuil){
-library(lme4)
-#grouping data in order to reduce computing time
-tab$decimalLatitude2=round_any(tab[,decimalLatitude],prec_lat)
-tab$decimalLongitude2=round_any(tab[,decimalLongitude],prec_long)
-tab[,year]=as.factor(tab[,year])
-#Linear model to take in account spatial variation of the phenology+phenological shifts with time
-jj=tab[,julian.day]
-lat=tab[,decimalLatitude]
-long=tab[,decimalLongitude]
-aa=as.numeric(as.character(tab[,year]))
-library(MASS)
-model=lmer(jj~lat*long+I(lat^2)*I(long^2)+I(lat^3)*I(long^3)+(1|aa),data=tab)
-#AIC SELECTION
-models=drop1(model)
-while(which.min(models$AIC)>1){
-new.formula=formula(drop.terms(terms(model),which(attr(terms(model), "term.labels")==rownames(models)[which.min(models$AIC)])))
-new.formula=formula(paste("jj~",paste(c(new.formula[[2]])),"+(1|aa)"))
-model=lmer(new.formula,data=tab)
-models=drop1(model)}
+sp=1.3 #smoothing parameter
+cutoff=0.07 #cutoff under which we exlude modes (in percentage of the highest mode of the species)
 
-tab$resi=residuals(model)
-tab$fitt=fitted(model)
+#convert year to factor
+tab$year=as.factor(tab$year)
 
-liste=unique(tab[,c("decimalLatitude2","decimalLongitude2")])
-resultat=foreach(i=1:nrow(liste),.combine=rbind)%dopar%{
-library(pastecs)
-library(fitdistrplus)
-library(plyr)
-library(utils)
-library(doSNOW)
-library(foreach)
-library(mclust)
-library(lme4)
-lim1=liste[i,"decimalLatitude2"]-1
-lim2=liste[i,"decimalLatitude2"]+1
-lim11=liste[i,"decimalLongitude2"]-1
-lim22=liste[i,"decimalLongitude2"]+1
-tab2=subset(tab,decimalLatitude2>=lim1 & decimalLatitude2<=lim2 & decimalLongitude2>=lim11 & decimalLongitude2<=lim22)
-while(nrow(tab2)<150){
-lim1=lim1-prec_lat
-lim2=lim2+prec_lat
-lim11=lim11-prec_long
-lim22=lim22+prec_long
-tab2=subset(tab,decimalLatitude2>=lim1 & decimalLatitude2<=lim2 & decimalLongitude2>=lim11 & decimalLongitude2<=lim22)}
-#detect multimodality in residual distribution
-sp2=sp
-y=density(tab2$resi,kernel="gaussian",from=min(tab2$resi),to=max(tab2$resi),adjust=sp2)$y
+######### FIRST STEP : correct by spatial variables #######
+
+#First mixt model to take in account spatial variables, here we do not take in account Altitude because it is not provided directly by the GBIF, but in our paper we added it to the mix model
+model1<- lmer(julian.day~decimalLatitude+decimalLongitude+(1|year), data =tab)
+
+#keep the BIC of this first model without any mode effect
+BICvec=BIC(model1)
+
+
+######### SECOND STEP : DEFINE THE NUMBER OF MODES #######
+
+#sutdy the multimodality in residuals:
+tab$resi=residuals(model1)
+y=density(tab$resi,kernel="gaussian",from=min(tab$resi),to=max(tab$resi),adjust=sp)$y
+y=y[which(y>=cutoff*max(y))]
 ae=turnpoints(y)
-func=function(x){rep(ae$peaks[x],ae$exaequos[x]+1)}
-func1=function(x){rep(ae$pits[x],ae$exaequos[x]+1)}
-density.tab=data.frame(x=density(tab2$resi,kernel="gaussian",from=min(tab2$resi),to=max(tab2$resi),adjust=sp2)$x,y=y,
-peaks=unlist(lapply(1:length(ae$peaks),func)),pits=unlist(lapply(1:length(ae$pits),func1)))
-#stock local maximums:
-maxi=data.frame(x=subset(density.tab,peaks==TRUE & y>=(0.1*max(density.tab$y)))$x,y=subset(density.tab,peaks==TRUE & y>=(0.1*max(density.tab$y)))$y)
-maxi=maxi[order(maxi$y,decreasing=T),]
-# minis=c()
-# for(mins in 1:(nrow(maxi)-1)){
-# bidon=subset(density.tab,pits==TRUE & x>maxi[mins,"x"] & x<maxi[(mins+1),"x"])
-# if(nrow(bidon)>1){bidon=bidon[which.min(bidon$y),]}
-# minis=c(minis,bidon[,"x"])}
+nbmax=length(which(ae$peaks)) #maximum number of modes (nbmax)
 
-nbpic=nrow(maxi)
-
-fitgaus=Mclust(tab2$resi,G=1:nbpic)
-nbmode=fitgaus$G
-#probability to be in each mode
-tab2[,paste("V",1:nbmode,sep="")]=fitgaus$z
-
-if(nbmode>1){
-#attribuate a random value for each record
-tabres$random=runif(nrow(tabres),0,1)
-cumul=cumsum(as.data.frame(t(tabres[,paste("V",1:nbmode,sep="")])))
-gen.func=function(x){
-vec=c(c(as.data.frame(tabres)[x,"random"])-c(cumul[,x]))
-return(min(which(vec==max(vec[which(vec<0)]))))
+if(nbmax>1){   #follow next steps only if nbmax>1 (phenology is potentially multimodal), either go to the end
+for(i in 2:nbmax){
+obj=Mclust(tab$resi,G=i,modelNames="E")
+tab$cate=as.factor(predict(obj)$classification)
+model2 <-lmer(julian.day~decimalLatitude+decimalLongitude+cate+(1|year), data =tab)
+BICvec[i]=BIC(model2)
 }
-tabres$gen=sapply(1:nrow(tabres),gen.func)
+#keep the number of mode which minimize the BIC of the mixt model:
+nbmode=which.min(BICvec)
+
+if(nbmode>1){   #follow next steps only if nbmode>1 (phenology is multimodal), either go to the end
+#classify records using nbmode
+obj=Mclust(tab$resi,G=nbmode,modelNames="E")
+tab$cate=as.factor(predict(obj)$classification)
+
+#if a mode is non represented in the data because, correct it: 
+while(length(unique(tab$cate))<nbmode){
+nbmode=length(unique(tab$cate))
+obj=Mclust(tab$resi,G=nbmode,modelNames="E")
+tab$cate=as.factor(predict(obj)$classification)}
+
+######### THIRD STEP : optimize classification #######
+
+#initialize the third step, optimize classification:
+modelb <-lmer(julian.day~decimalLatitude+decimalLongitude+cate+(1|year), data =tab)
+tab$incerti=obj$uncertainty
+tab$resi=residuals(model2)
+
+a2=logLik(modelb)[1]-1
+a=logLik(modelb)[1]
+nbmode=length(unique(tab$cate))
+
+#start optimization :
+while(a>a2){
+a2=a
+for(i in nbmode:1){
+tab$cateb=tab$cate
+
+#change poorly predicted points with negative residuals and transfer them to the previous mode:
+if(i>1){
+
+#change by set of 1%
+tab$cateb=tab$cate
+limit2=quantile(tab$resi[which(tab$cate==i)],probs=0.01)
+lili=which(tab$resi<limit2 & tab$cate==i)
+tab$cateb[lili]=i-1
+modelb <- lmer(julian.day~decimalLatitude+decimalLongitude+cateb+(1|year), data =tab)
+
+#if it improves the model, keep the modification:
+if(logLik(modelb)[1]>a){
+tab$cate[lili]=tab$cateb[lili]
+tab$resi=residuals(modelb)
+a=logLik(modelb)
+}else{
+#if previous step does not improve likelihood try to change records by set of 10 records maximum:
+
+tab$cateb=tab$cate
+lili=lili[order(abs(tab$resi[lili]),decreasing=T)]
+lili=lili[1:min(10,length(lili))]
+tab$cateb[lili]=i-1
+modelb <- lmer(julian.day~decimalLatitude+decimalLongitude+cateb+(1|year), data =tab)
+
+#if it improves the model, keep the modification
+if(logLik(modelb)[1]>a){
+tab$cate[lili]=tab$cateb[lili]}
+tab$resi=residuals(modelb)
+a=logLik(modelb)}
 }
-return(tabres[,names(tab)])}
-print(unique(tab[,species]))
-resultat$gen[is.na(resultat$gen)]=min(resultat$gen,na.rm=T)
-#remove generation supported by a low number of data
-for(gene in unique(resultat$gen)){
-if(nrow(subset(resultat,gen==gene))<seuil){resultat$gen[which(resultat$gen==gene)]=max(1,resultat$gen[which(resultat$gen==gene)]-1)}}
-return(resultat)}
 
-#set the smoothing parameter :
-sp=1.4
-#set the spatial precision
-prec_long=0.1
-prec_lat=0.1
-#set the minimum number of records to support a generation:
-seuil=10
-#set the number of clusters to parallel loops
-cluster_nb=6
-#make clusters to parallel loops
-cl<-makeCluster(cluster_nb) 
-registerDoSNOW(cl)
+#change poorly predicted points with positive residuals and transfer them to the next mode:
+if(nbmode>i){
+#change by set of 1%
+limit2=quantile(tab$resi[which(tab$cate==i)],probs=0.99)
+lili=which(tab$resi>limit2 & tab$cate==i)
+tab$cateb[lili]=i+1
+modelb <- lmer(julian.day~decimalLatitude+decimalLongitude+cateb+(1|year), data =tab)
 
-resultat=func(tab,"julian.day","decimalLatitude","decimalLongitude","year",sp,prec_lat,prec_long,"species",seuil)
+#if it improves the model, keep the modification:
+if(logLik(modelb)[1]>a){
+tab$cate[lili]=tab$cateb[lili]
+tab$resi=residuals(modelb)
+a=logLik(modelb)
+}else{
+#if previous step does not improve likelihood try to change records by set of 10 records maximum:
+
+tab$cateb=tab$cate
+lili=lili[order(abs(tab$resi[lili]),decreasing=T)]
+lili=lili[1:min(10,length(lili))]
+tab$cateb[lili]=i+1
+modelb <- lmer(julian.day~decimalLatitude+decimalLongitude+cateb+(1|year), data =tab)
+
+#if it improves the model, keep the modification:
+if(logLik(modelb)[1]>a){
+tab$cate[lili]=tab$cateb[lili]
+tab$resi=residuals(modelb)
+a=logLik(modelb)}}
+}
+}
+}
+}
+}
+
+
 #plot the result
 library(ggmap)
 library(ggplot2)
 library(gridExtra)
 
-France_map=get_googlemap(center="Europe", maptype = "satellite",zoom=3,scale=2) #this step can fail, repeat this row again until it works 
-France <- ggmap(France_map)+
- scale_y_continuous(limits = c(32,72), expand = c(0, 0))+
-       scale_x_continuous(limits = c(-15,36), expand = c(0, 0))
-pl1=ggplot(data=resultat,aes(x=julian.day,fill=as.factor(gen)))+geom_histogram()+theme_bw()+theme(legend.position="none")+
-ggtitle(unique(resultat$name))+xlab("Observation day (julian day)")
-pl2=France+geom_point(data=resultat,aes(y=decimalLatitude,x=decimalLongitude,col=as.factor(gen)),size=0.4,alpha=0.2)+labs(col="Mode")
-grid.arrange(pl1,pl2,ncol=2)
+pl1=ggplot(tab,aes(x=julian.day,fill=as.factor(cate)))+geom_bar()+theme(legend.position="none")
+pl2=ggplot(tab,aes(x=decimalLatitude,fill=cate))+geom_bar(position="fill",binwidth=1)+theme(legend.position="none")
+pl3=ggplot(tab,aes(x=decimalLongitude,y=decimalLatitude,col=cate))+geom_point()+theme(legend.position="none")
+pl4=ggplot(tab,aes(x=decimalLatitude,y=julian.day,col=cate))+geom_point()+theme(legend.position="none")
 
-#on this example you can see adult records (in green, in the middle) and eggs/larvae records in red and blue
-#so now we can work only on the adult phenology be removing eggs/larve records
+grid.arrange(pl1,pl2,pl3,pl4,ncol=2)
