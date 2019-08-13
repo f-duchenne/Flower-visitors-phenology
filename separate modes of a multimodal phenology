@@ -56,7 +56,7 @@ if(nbmode>1){   #follow next steps only if nbmode>1 (phenology is multimodal), e
 obj=Mclust(tab$resi,G=nbmode,modelNames="E")
 tab$cate=as.factor(predict(obj)$classification)
 
-#if a mode is non represented in the data because, correct it: 
+#if a mode is non represented in the data, remove it: 
 while(length(unique(tab$cate))<nbmode){
 nbmode=length(unique(tab$cate))
 obj=Mclust(tab$resi,G=nbmode,modelNames="E")
@@ -79,7 +79,7 @@ a2=a
 for(i in nbmode:1){
 tab$cateb=tab$cate
 
-#change poorly predicted points with negative residuals and transfer them to the previous mode:
+#change poorly predicted points with negative residuals and transfer them to the previous mode if it is not the first mode:
 if(i>1){
 
 #change by set of 1%
